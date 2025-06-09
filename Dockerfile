@@ -1,49 +1,38 @@
-FROM node:18-bullseye
+# Use official n8n base image
+FROM n8nio/n8n:latest
 
-ENV N8N_PORT=10000
-ENV N8N_BASIC_AUTH_ACTIVE=true
-ENV N8N_BASIC_AUTH_USER=admin
-ENV N8N_BASIC_AUTH_PASSWORD=secret
-ENV WEBHOOK_URL=https://your-subdomain.onrender.com/
+# Switch to root to install system packages
+USER root
 
-WORKDIR /app
-
-# System dependencies
+# Install required system packages
 RUN apt-get update && apt-get install -y \
-    ffmpeg git curl wget jq \
-    python3 python3-pip python3-venv build-essential \
-    libsndfile1 libgl1 libglib2.0-0 \
-  && rm -rf /var/lib/apt/lists/*
+    python3 \
+    python3-pip \
+    ffmpeg \
+    git \
+    curl \
+    wget \
+    jq \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Alias python
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# Upgrade pip and install required Python libraries
+RUN python3 -m pip install --upgrade pip && \
+    pip3 install --no-cache-dir \
+    whisper \
+    moviepy \
+    ffmpeg-python \
+    pydub \
+    openai \
+    requests \
+    transformers \
+    torch \
+    sentencepiece
 
-# Install n8n
-RUN npm install -g n8n
+# Optional: expose n8n HTTP port
+EXPOSE 5678
 
-# Python environment
-RUN python -m venv /venv
-ENV PATH="/venv/bin:${PATH}"
+# Switch back to n8n user
+USER node
 
-# Upgrade pip
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
-# Python modules
-RUN pip install --no-cache-dir \
-    torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 \
-    --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir \
-    openai-whisper whisper-timestamped yt-dlp \
-    moviepy==1.0.3 pydub==0.25.1
-
-# Piper TTS binary (v2023.11.14-2)
-RUN mkdir -p /piper && cd /piper && \
-    curl --fail --retry 5 --retry-delay 3 -L \
-      -o piper.tar.gz \
-      https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz && \
-    tar -xvzf piper.tar.gz && rm piper.tar.gz && \
-    chmod +x ./piper
-
-EXPOSE 10000
-
+# Default command (Render runs CMD automatically)
 CMD ["n8n"]
