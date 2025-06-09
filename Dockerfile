@@ -1,7 +1,7 @@
 # Use Node base with Debian for compatibility
 FROM node:18-bullseye
 
-# Environment variables (can be overridden in Render Dashboard)
+# Environment variables (override in Render Dashboard if needed)
 ENV N8N_BASIC_AUTH_ACTIVE=true
 ENV N8N_BASIC_AUTH_USER=admin
 ENV N8N_BASIC_AUTH_PASSWORD=secret
@@ -32,23 +32,28 @@ RUN apt-get update && apt-get install -y \
 # Alias python3 to python
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Install n8n
+# Install n8n globally
 RUN npm install -g n8n
 
-# Upgrade pip and install Python packages
+# Upgrade pip and install required Python packages
 RUN pip install --upgrade pip && \
-    pip install moviepy pydub yt-dlp openai-whisper whisper-timestamped && \
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    pip install \
+    openai-whisper \
+    whisper-timestamped \
+    moviepy \
+    pydub \
+    yt-dlp \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # Download and extract Piper TTS binary
 RUN mkdir -p /piper && \
     cd /piper && \
-    wget --no-verbose https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz -O piper.tar.gz && \
+    curl -L -o piper.tar.gz https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz && \
     tar -xzf piper.tar.gz && \
     rm piper.tar.gz && \
     chmod +x /piper/piper
 
-# Expose Render default port
+# Expose default n8n port
 EXPOSE 10000
 
 # Default command to run n8n
