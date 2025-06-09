@@ -1,12 +1,9 @@
-# Base image with Debian + Node + npm + Python support
 FROM node:18-bullseye
 
-# Set environment vars
 ENV N8N_BASIC_AUTH_ACTIVE=true
 ENV N8N_BASIC_AUTH_USER=admin
 ENV N8N_BASIC_AUTH_PASSWORD=secret
 
-# Set working directory
 WORKDIR /app
 
 # Install system packages
@@ -25,29 +22,33 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Make 'python' alias
+# Make python alias
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Install global npm dependencies
+# Install global n8n
 RUN npm install -g n8n
 
-# Install Python packages
-RUN pip install --upgrade pip && pip install \
-    openai-whisper \
-    whisper-timestamped \
-    moviepy \
-    pydub \
-    yt-dlp \
-    TTS==0.22.0 \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Upgrade pip separately
+RUN pip install --upgrade pip
 
-# Install Piper TTS (C++ binary)
+# Install light Python dependencies first
+RUN pip install moviepy pydub yt-dlp whisper-timestamped
+
+# Install whisper (CPU)
+RUN pip install openai-whisper
+
+# Install torch separately (CPU only)
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Optional: skip installing Coqui TTS if using Piper directly
+# RUN pip install TTS==0.22.0
+
+# Install Piper (C++ binary) – lightweight and fast
 RUN mkdir -p /piper && \
     wget -q https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz -O - | tar -xz -C /piper && \
     chmod +x /piper/piper
 
-# Expose n8n default port
+# Expose port
 EXPOSE 5678
 
-# Default command to run n8n
 CMD ["n8n"]
