@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Alias python
+# Alias python to python3
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Install n8n globally
@@ -37,7 +37,7 @@ ENV PATH="/venv/bin:$PATH"
 # Upgrade pip safely
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Install Torch + Whisper + moviepy + yt-dlp + Piper dependencies
+# Install Torch CPU version + Whisper and other Python libs
 RUN pip install --no-cache-dir \
     torch==2.2.2 \
     torchvision==0.17.2 \
@@ -50,10 +50,10 @@ RUN pip install --no-cache-dir \
     moviepy==1.0.3 \
     pydub==0.25.1
 
-# Download Piper binary with robust curl + verbose tar
+# Download Piper TTS binary version 1.5.1 with retries and verbose extraction
 RUN mkdir -p /piper && \
     cd /piper && \
-    curl --fail --retry 5 --retry-delay 3 -L -o piper.tar.gz https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz && \
+    curl --fail --retry 5 --retry-delay 3 -L -o piper.tar.gz https://github.com/rhasspy/piper/releases/download/v1.5.1/piper_1.5.1_linux_x86_64.tar.gz && \
     tar -xvzf piper.tar.gz && \
     rm piper.tar.gz && \
     chmod +x /piper/piper
