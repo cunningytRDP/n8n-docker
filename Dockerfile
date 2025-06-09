@@ -1,9 +1,15 @@
-FROM n8nio/n8n:latest
+# Base image with Debian + Node + npm + Python support
+FROM node:18-bullseye
 
-# Install dependencies
-USER root
+# Set environment vars
+ENV N8N_BASIC_AUTH_ACTIVE=true
+ENV N8N_BASIC_AUTH_USER=admin
+ENV N8N_BASIC_AUTH_PASSWORD=secret
 
-# Install ffmpeg, yt-dlp, Python, Whisper dependencies, jq, curl, wget
+# Set working directory
+WORKDIR /app
+
+# Install system packages
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
@@ -19,33 +25,29 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Make Python available as 'python'
+# Make 'python' alias
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Install Python packages for AI agents
-RUN pip install --upgrade pip && \
-    pip install \
+# Install global npm dependencies
+RUN npm install -g n8n
+
+# Install Python packages
+RUN pip install --upgrade pip && pip install \
     openai-whisper \
     whisper-timestamped \
-    pydub \
     moviepy \
+    pydub \
     yt-dlp \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
-    TTS==0.22.0  # For Piper-compatible TTS, optional
+    TTS==0.22.0 \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# Optional: install Piper TTS binaries (small English model)
+# Install Piper TTS (C++ binary)
 RUN mkdir -p /piper && \
     wget -q https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz -O - | tar -xz -C /piper && \
     chmod +x /piper/piper
 
-# Set permissions
-RUN chown -R node:node /piper
+# Expose n8n default port
+EXPOSE 5678
 
-# Switch back to n8n user
-USER node
-
-# Set working dir
-WORKDIR /data
-
-# Default n8n command
+# Default command to run n8n
 CMD ["n8n"]
