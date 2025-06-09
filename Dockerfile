@@ -1,39 +1,51 @@
-FROM node:18-bullseye
+FROM n8nio/n8n:latest
 
-# Set working directory
-WORKDIR /app
+# Install dependencies
+USER root
 
-# Install system dependencies
+# Install ffmpeg, yt-dlp, Python, Whisper dependencies, jq, curl, wget
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    python3 \
-    python3-pip \
+    git \
     curl \
     wget \
-    git \
     jq \
+    python3 \
+    python3-pip \
+    python3-venv \
     build-essential \
     libsndfile1 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python tools
-RUN pip3 install --no-cache-dir yt-dlp openai-whisper
+# Make Python available as 'python'
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Download and install Piper (voice synthesis)
-RUN mkdir -p /app/piper && \
-    curl -Lo /app/piper/piper https://github.com/rhasspy/piper/releases/download/v1.2.0/piper-linux-x86_64 && \
-    chmod +x /app/piper/piper && \
-    curl -Lo /app/piper/en_US-amy-low.onnx https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy-low/en_US-amy-low.onnx && \
-    curl -Lo /app/piper/en_US-amy-low.onnx.json https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy-low/en_US-amy-low.onnx.json
+# Install Python packages for AI agents
+RUN pip install --upgrade pip && \
+    pip install \
+    openai-whisper \
+    whisper-timestamped \
+    pydub \
+    moviepy \
+    yt-dlp \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
+    TTS==0.22.0  # For Piper-compatible TTS, optional
 
-# Add piper binary to PATH
-ENV PATH="/app/piper:$PATH"
+# Optional: install Piper TTS binaries (small English model)
+RUN mkdir -p /piper && \
+    wget -q https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz -O - | tar -xz -C /piper && \
+    chmod +x /piper/piper
 
-# Install n8n globally
-RUN npm install -g n8n
+# Set permissions
+RUN chown -R node:node /piper
 
-# Expose default n8n port
-EXPOSE 5678
+# Switch back to n8n user
+USER node
 
-# Start n8n when container launches
+# Set working dir
+WORKDIR /data
+
+# Default n8n command
 CMD ["n8n"]
