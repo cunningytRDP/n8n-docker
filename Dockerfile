@@ -1,7 +1,7 @@
-# Base image
-FROM n8nio/n8n:latest
+# Use Debian-based n8n image so apt-get works
+FROM n8nio/n8n:latest-debian
 
-# Switch to root to install tools
+# Switch to root to install packages
 USER root
 
 # Install system dependencies
@@ -37,13 +37,13 @@ RUN mkdir -p /opt/piper \
  && ln -s /opt/piper/piper /usr/local/bin/piper \
  && rm piper_linux_x86_64.tar.gz
 
-# Set default path for whisper/piper if needed (optional)
+# Set env path
 ENV PATH="/usr/local/bin:$PATH"
 
-# Switch back to node user for security
+# Switch back to node user
 USER node
 
-# Optional: Set default n8n auth
+# Optional: Set up auth
 ENV N8N_BASIC_AUTH_ACTIVE=true
 ENV N8N_BASIC_AUTH_USER=admin
 ENV N8N_BASIC_AUTH_PASSWORD=admin
