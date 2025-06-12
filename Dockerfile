@@ -1,8 +1,10 @@
+# Base image
 FROM n8nio/n8n:latest
 
-# Install system dependencies
+# Switch to root to install tools
 USER root
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
@@ -13,10 +15,9 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     unzip \
     libsndfile1 \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and install Python packages
+# Install Python packages
 RUN pip3 install --no-cache-dir \
     openai-whisper \
     moviepy \
@@ -36,12 +37,16 @@ RUN mkdir -p /opt/piper \
  && ln -s /opt/piper/piper /usr/local/bin/piper \
  && rm piper_linux_x86_64.tar.gz
 
-# Switch back to n8n user
+# Set default path for whisper/piper if needed (optional)
+ENV PATH="/usr/local/bin:$PATH"
+
+# Switch back to node user for security
 USER node
 
-# Set environment variables (optional)
-ENV N8N_BASIC_AUTH_ACTIVE=true \
-    N8N_BASIC_AUTH_USER=admin \
-    N8N_BASIC_AUTH_PASSWORD=admin \
-    N8N_EDITOR_BASE_URL=https://your-domain.com \
-    WEBHOOK_TUNNEL_URL=https://your-domain.com
+# Optional: Set default n8n auth
+ENV N8N_BASIC_AUTH_ACTIVE=true
+ENV N8N_BASIC_AUTH_USER=admin
+ENV N8N_BASIC_AUTH_PASSWORD=admin
+ENV N8N_PORT=5678
+ENV N8N_HOST=0.0.0.0
+ENV WEBHOOK_TUNNEL_URL=https://your-subdomain.onrender.com
