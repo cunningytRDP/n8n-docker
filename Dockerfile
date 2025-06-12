@@ -43,5 +43,3 @@ EXPOSE 5678
 # Set timezone
 ENV TZ=Asia/Kolkata
 
-# Start n8n
-CMD ["n8n"]
