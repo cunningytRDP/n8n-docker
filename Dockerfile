@@ -1,12 +1,14 @@
-# Use Debian-based n8n image so apt-get works
+# Use Debian-based n8n image
 FROM n8nio/n8n:latest-debian
 
-# Switch to root to install packages
 USER root
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    build-essential \
     ffmpeg \
+    libsm6 \
+    libxext6 \
     git \
     curl \
     wget \
@@ -19,17 +21,17 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python packages
 RUN pip3 install --no-cache-dir \
-    openai-whisper \
-    moviepy \
-    pydub \
     numpy \
-    torch
+    pydub \
+    moviepy \
+    torch==2.1.0+cpu torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
+ && pip3 install openai-whisper
 
 # Install yt-dlp
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
  && chmod a+rx /usr/local/bin/yt-dlp
 
-# Install Piper TTS binary
+# Install Piper
 RUN mkdir -p /opt/piper \
  && wget -q https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz \
  && tar -xzf piper_linux_x86_64.tar.gz -C /opt/piper \
@@ -37,16 +39,13 @@ RUN mkdir -p /opt/piper \
  && ln -s /opt/piper/piper /usr/local/bin/piper \
  && rm piper_linux_x86_64.tar.gz
 
-# Set env path
 ENV PATH="/usr/local/bin:$PATH"
 
-# Switch back to node user
 USER node
 
-# Optional: Set up auth
 ENV N8N_BASIC_AUTH_ACTIVE=true
 ENV N8N_BASIC_AUTH_USER=admin
 ENV N8N_BASIC_AUTH_PASSWORD=admin
 ENV N8N_PORT=5678
 ENV N8N_HOST=0.0.0.0
-ENV WEBHOOK_TUNNEL_URL=https://your-subdomain.onrender.com
+ENV WEBHOOK_TUNNEL_URL=https://n8n-docker-hnnu.onrender.com
