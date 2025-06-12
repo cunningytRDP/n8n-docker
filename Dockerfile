@@ -1,4 +1,4 @@
-# Use Node with Debian base
+# Base image with Node.js 18 (safe for n8n 1.45.0)
 FROM node:18-bullseye-slim
 
 # Set working directory
@@ -31,11 +31,12 @@ RUN mkdir -p /piper && \
     chmod +x /piper/piper && \
     ln -s /piper/piper /usr/local/bin/piper
 
-# Install n8n globally
-RUN npm install -g n8n
+# Install yt-dlp
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod +x /usr/local/bin/yt-dlp
 
-# Expose n8n port
-EXPOSE 5678
+# Install n8n (compatible version!)
+RUN npm install -g n8n@1.45.0
 
 # Set environment variables
 ENV N8N_PORT=5678
@@ -44,8 +45,11 @@ ENV N8N_BASIC_AUTH_USER=admin
 ENV N8N_BASIC_AUTH_PASSWORD=admin
 ENV TZ=Asia/Kolkata
 
-# Run as default node user
+# Use the default non-root user
 USER node
 
-# Start n8n explicitly
+# Expose the port used by n8n
+EXPOSE 5678
+
+# Start n8n
 ENTRYPOINT ["n8n"]
