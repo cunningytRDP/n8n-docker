@@ -1,7 +1,10 @@
-FROM n8nio/n8n:latest
+# Use Debian base for compatibility
+FROM node:18-bullseye-slim
 
-# Install OS-level dependencies
-USER root
+# Set working directory
+WORKDIR /usr/src/app
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
@@ -22,17 +25,24 @@ RUN pip3 install --no-cache-dir \
     moviepy \
     faster-whisper
 
-# Install Piper TTS (lightweight voice engine)
+# Install Piper TTS binary
 RUN mkdir -p /piper && \
     curl -Lo /piper/piper https://huggingface.co/rhasspy/piper/resolve/main/linux/x86_64/piper && \
     chmod +x /piper/piper && \
     ln -s /piper/piper /usr/local/bin/piper
 
-# Set back to n8n user
+# Install n8n
+RUN npm install -g n8n
+
+# Create user and switch
+RUN useradd -m -s /bin/bash node
 USER node
 
-# Expose port
+# Expose default n8n port
 EXPOSE 5678
+
+# Set timezone (optional)
+ENV TZ=Asia/Kolkata
 
 # Start n8n
 CMD ["n8n"]
