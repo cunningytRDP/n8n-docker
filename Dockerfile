@@ -1,4 +1,4 @@
-# Use Debian base for compatibility
+# Use Debian base for full apt compatibility
 FROM node:18-bullseye-slim
 
 # Set working directory
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# Install Python libraries
+# Install Python packages
 RUN pip3 install --no-cache-dir \
     numpy \
     pydub \
@@ -31,17 +31,16 @@ RUN mkdir -p /piper && \
     chmod +x /piper/piper && \
     ln -s /piper/piper /usr/local/bin/piper
 
-# Install n8n
+# Install n8n globally
 RUN npm install -g n8n
 
-# Create user and switch
-RUN useradd -m -s /bin/bash node
+# Switch to existing non-root user "node"
 USER node
 
 # Expose default n8n port
 EXPOSE 5678
 
-# Set timezone (optional)
+# Set timezone
 ENV TZ=Asia/Kolkata
 
 # Start n8n
