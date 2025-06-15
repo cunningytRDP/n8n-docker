@@ -1,50 +1,59 @@
-# Use lightweight Node.js base image
+# Start from a lightweight Debian base
 FROM node:18-slim
 
-# Environment setup
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV N8N_BASIC_AUTH_ACTIVE=true
-ENV N8N_BASIC_AUTH_USER=admin
-ENV N8N_BASIC_AUTH_PASSWORD=admin
+# Set environment variables
+ENV N8N_USER_FOLDER="/home/node/.n8n"
+ENV N8N_HOST="localhost"
+ENV N8N_PORT=5678
+ENV NODE_ENV=production
 
-# Install system dependencies
+# Set working directory
+WORKDIR /app
+
+# Install system packages
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
     ffmpeg \
-    git \
     curl \
     wget \
+    git \
     jq \
     unzip \
     build-essential \
     libsndfile1 \
-    libgl1 \
-    libsm6 \
-    libxext6 \
-    libglib2.0-0 \
+    python3 \
+    python3-pip \
+    ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages
-RUN pip3 install --upgrade pip && \
-    pip3 install numpy==1.24.4 pydub==0.25.1 moviepy==1.0.3 faster-whisper==0.10.0
+# Install yt-dlp (for YouTube and video downloads)
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp
 
-# Install n8n globally
-RUN npm install -g n8n
+# Set Python aliases
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Install Piper (lightweight TTS)
-RUN mkdir -p /app/piper && \
-    cd /app/piper && \
-    wget https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz && \
-    tar -xzf piper_linux_x86_64.tar.gz && \
-    rm piper_linux_x86_64.tar.gz
+# Install Whisper (for transcriptions)
+RUN pip install --no-cache-dir git+https://github.com/openai/whisper.git
 
-# Set working directory for n8n
-WORKDIR /data
+# Install Piper TTS (voice generation)
+RUN mkdir -p /opt/piper && \
+    curl -L https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz | tar -xz -C /opt/piper && \
+    chmod +x /opt/piper/piper
 
-# Expose n8n default port
+# Add Piper to PATH
+ENV PATH="/opt/piper:$PATH"
+
+# Install n8n
+RUN npm install --global n8n
+
+# Create n8n data folder
+RUN mkdir -p $N8N_USER_FOLDER && chown -R node:node $N8N_USER_FOLDER
+
+# Switch to non-root user
+USER node
+
+# Expose default n8n port
 EXPOSE 5678
 
-# Start n8n on container boot
+# Start n8n
 CMD ["n8n"]
