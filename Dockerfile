@@ -29,14 +29,9 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp
 
-# ✅ Install PyTorch (CPU-only) and Whisper
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir \
-        torch==2.1.2+cpu \
-        torchvision==0.16.2+cpu \
-        torchaudio==2.1.2+cpu \
-        --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir git+https://github.com/openai/whisper.git
+# ✅ COPY and install Python requirements
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # Install Piper TTS
 RUN mkdir -p /opt/piper && \
@@ -48,7 +43,7 @@ ENV PATH="/opt/piper:$PATH"
 # Install n8n
 RUN npm install --global n8n
 
-# Setup n8n folder
+# Create n8n folder
 RUN mkdir -p $N8N_USER_FOLDER && chown -R node:node $N8N_USER_FOLDER
 
 USER node
