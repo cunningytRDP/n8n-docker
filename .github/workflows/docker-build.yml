@@ -21,9 +21,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Convert GitHub actor and repo to lowercase
+        id: vars
+        run: |
+          echo "username_lower=$(echo '${{ github.actor }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/n8n-docker:latest
+          tags: ghcr.io/${{ steps.vars.outputs.username_lower }}/n8n-docker:latest
