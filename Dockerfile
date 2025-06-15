@@ -22,15 +22,20 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Alias python
+# Fix Python alias
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Install yt-dlp
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp
 
-# Install Whisper + PyTorch
-RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+# ✅ Install PyTorch (CPU-only) and Whisper
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir \
+        torch==2.1.2+cpu \
+        torchvision==0.16.2+cpu \
+        torchaudio==2.1.2+cpu \
+        --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir git+https://github.com/openai/whisper.git
 
 # Install Piper TTS
@@ -43,11 +48,10 @@ ENV PATH="/opt/piper:$PATH"
 # Install n8n
 RUN npm install --global n8n
 
-# Create data directory
+# Setup n8n folder
 RUN mkdir -p $N8N_USER_FOLDER && chown -R node:node $N8N_USER_FOLDER
 
 USER node
-
 EXPOSE 5678
 
 CMD ["n8n"]
