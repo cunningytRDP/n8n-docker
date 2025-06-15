@@ -41,12 +41,6 @@ RUN mkdir -p /app/piper && \
     tar -xzf piper_linux_x86_64.tar.gz && \
     rm piper_linux_x86_64.tar.gz
 
-# Optional: Copy your scripts
-WORKDIR /app
-COPY generate_video.py .
-COPY generate_audio.sh .
-RUN chmod +x generate_audio.sh
-
 # Final working directory for n8n
 WORKDIR /data
 
