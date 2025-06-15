@@ -1,11 +1,17 @@
-# Base image with Node.js 18 (safe for n8n 1.45.0)
-FROM node:18-bullseye-slim
+# Base: Slim Debian with Node 18
+FROM debian:bullseye-slim
 
-# Set working directory
-WORKDIR /usr/src/app
+# Set environment variables
+ENV N8N_BASIC_AUTH_ACTIVE=true
+ENV N8N_BASIC_AUTH_USER=admin
+ENV N8N_BASIC_AUTH_PASSWORD=admin
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Update and install system dependencies
 RUN apt-get update && apt-get install -y \
+    nodejs \
+    npm \
     ffmpeg \
     git \
     curl \
@@ -15,41 +21,37 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     libsndfile1 \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Python libraries
+# Install latest n8n
+RUN npm install -g n8n
+
+# Install Python packages
 RUN pip3 install --no-cache-dir \
     numpy \
     pydub \
     moviepy \
     faster-whisper
 
-# Install Piper TTS binary
-RUN mkdir -p /piper && \
-    curl -Lo /piper/piper https://huggingface.co/rhasspy/piper/resolve/main/linux/x86_64/piper && \
-    chmod +x /piper/piper && \
-    ln -s /piper/piper /usr/local/bin/piper
+# Setup Piper TTS
+RUN mkdir -p /app/piper && \
+    cd /app/piper && \
+    wget https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz && \
+    tar -xzf piper_linux_x86_64.tar.gz && \
+    rm piper_linux_x86_64.tar.gz
 
-# Install yt-dlp
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
-    chmod +x /usr/local/bin/yt-dlp
+# Optional: Copy your scripts
+WORKDIR /app
+COPY generate_video.py .
+COPY generate_audio.sh .
+RUN chmod +x generate_audio.sh
 
-# Install n8n (compatible version!)
-RUN npm install -g n8n@1.45.0
+# Final working directory for n8n
+WORKDIR /data
 
-# Set environment variables
-ENV N8N_PORT=5678
-ENV N8N_BASIC_AUTH_ACTIVE=true
-ENV N8N_BASIC_AUTH_USER=admin
-ENV N8N_BASIC_AUTH_PASSWORD=admin
-ENV TZ=Asia/Kolkata
-
-# Use the default non-root user
-USER node
-
-# Expose the port used by n8n
+# Expose n8n's port
 EXPOSE 5678
 
-# Start n8n
-ENTRYPOINT ["n8n"]
+# Start n8n on container run
+CMD ["n8n"]
