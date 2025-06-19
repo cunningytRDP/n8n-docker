@@ -3,8 +3,10 @@ FROM python:3.10-slim as whisper-builder
 
 # Install system deps
 RUN apt-get update && apt-get install -y \
-    git ffmpeg libsndfile1 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    ffmpeg curl wget git jq unzip \
+    python3 python3-pip libpython3.10 libpython3.10-dev libsndfile1 \
+ && ln -s /usr/bin/python3 /usr/bin/python \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install whisper + torch (CPU)
 RUN pip install --upgrade pip && \
