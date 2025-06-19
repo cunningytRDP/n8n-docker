@@ -2,11 +2,13 @@
 FROM python:3.10-slim as whisper-builder
 
 # Install system deps
+# Install system dependencies (with full Python support)
 RUN apt-get update && apt-get install -y \
-    ffmpeg curl wget git jq unzip \
-    python3 python3-pip libpython3.10 libpython3.10-dev libsndfile1 \
- && ln -s /usr/bin/python3 /usr/bin/python \
+    curl wget git unzip ffmpeg jq \
+    python3 python3-pip python3-venv libpython3.10 libpython3.10-dev libsndfile1 \
+ && ln -sf /usr/bin/python3 /usr/bin/python \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 
 # Install whisper + torch (CPU)
 RUN pip install --upgrade pip && \
