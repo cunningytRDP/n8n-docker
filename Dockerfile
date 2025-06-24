@@ -30,11 +30,13 @@ RUN pip install --upgrade pip && \
 
 # --- Install Piper ---
 RUN mkdir -p /opt/piper && \
-    curl -L https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz \
-    | tar -xz -C /opt/piper && \
+    cd /opt/piper && \
+    curl -LO https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz && \
+    tar -xz && \
+    chmod +x /opt/piper/piper && \
     chmod 755 /opt /opt/piper && \
-    chmod 755 /opt/piper/piper && \
     chown -R node:node /opt/piper
+
 
 
 
