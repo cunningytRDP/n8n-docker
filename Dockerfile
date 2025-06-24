@@ -1,58 +1,29 @@
-FROM python:3.10-slim
+# Start from the official n8n image
+FROM n8nio/n8n
 
-# Environment
-ENV PIP_NO_CACHE_DIR=1
-ENV DEBIAN_FRONTEND=noninteractive
-ENV N8N_USER_FOLDER="/home/node/.n8n"
-ENV NODE_ENV=production
-ENV PATH="/opt/piper:$PATH"
+# Switch to the root user to install system-level packages
+USER root
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl wget git unzip ffmpeg jq build-essential libsndfile1 ca-certificates gnupg \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Update package lists and install ffmpeg and other dependencies for Piper TTS
+# espeak-ng is a dependency for Piper
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 18.x and npm, then n8n
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g n8n
-
-# Install yt-dlp (standalone)
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-    -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
-
-# Install Whisper + Torch CPU-only
-RUN pip install --upgrade pip && \
-    pip install torch==2.1.2+cpu torchvision==0.16.2+cpu torchaudio==2.1.2+cpu \
-        --index-url https://download.pytorch.org/whl/cpu && \
-    pip install git+https://github.com/openai/whisper.git
-
-
-# --- Install Piper ---
-RUN mkdir -p /opt/piper && \
-    cd /opt/piper && \
-    curl -LO https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz && \
-    tar -xz && \
-    chmod +x /opt/piper/piper && \
-    chmod 755 /opt /opt/piper && \
-    chown -R node:node /opt/piper
-
-
-
-
-# Download default Piper voice model
-RUN curl -L https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US-lessac-medium.onnx \
-    -o /opt/piper/en_US-lessac-medium.onnx
-
-# Make Piper globally accessible (optional but nice)
-RUN ln -s /opt/piper/piper /usr/local/bin/piper
-
-# Set up n8n directory and permissions
-RUN useradd -m node && mkdir -p $N8N_USER_FOLDER && chown -R node:node $N8N_USER_FOLDER
+# Switch back to the node user
 USER node
 
-# Expose n8n web UI port
-EXPOSE 5678
+# Create a directory for Python packages
+RUN mkdir -p /home/node/.local/bin
+ENV PATH="/home/node/.local/bin:${PATH}"
 
-# Default command to run n8n
-CMD ["n8n"]
+# Upgrade pip and install the specified Python packages using a requirements.txt file
+# We will create this file next.
+COPY --chown=node:node requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+# This command will be run when the container starts.
+# It's the default command for the n8n container.
+CMD [ "n8n" ]
