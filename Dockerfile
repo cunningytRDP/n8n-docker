@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
  && pip install --upgrade pip && \
     pip install git+https://github.com/openai/whisper.git
 
-# -------- Stage 2: Main n8n on Debian --------
-FROM node:18-slim as base
+# -------- Stage 2: Main n8n on Debian with all tools --------
+FROM node:18-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -27,11 +27,6 @@ RUN apt-get update && apt-get install -y \
     libsndfile1 \
  && rm -rf /var/lib/apt/lists/*
 
-# Install n8n
-WORKDIR /app
-COPY --from=whisper-builder /usr/local /usr/local
-RUN npm install n8n -g
-
 # Install yt-dlp
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp
@@ -42,12 +37,20 @@ RUN mkdir -p /opt/piper && \
     | tar -xz -C /opt/piper && \
     chmod +x /opt/piper/piper
 
+# Install n8n globally
+RUN npm install -g n8n
+
+# Copy Whisper from Stage 1
+COPY --from=whisper-builder /usr/local /usr/local
+
+# Set PATH to include piper
 ENV PATH="/opt/piper:$PATH"
 
-EXPOSE 5678
-
-# Use node user for safety
-RUN useradd -m node
+# Switch to the pre-existing non-root node user
 USER node
 
+# Set default port
+EXPOSE 5678
+
+# Start n8n
 CMD ["n8n"]
