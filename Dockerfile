@@ -7,11 +7,10 @@ RUN apt-get update && apt-get install -y \
  && pip install --upgrade pip && \
     pip install git+https://github.com/openai/whisper.git
 
-# -------- Stage 2: Main n8n with custom tools --------
-FROM n8nio/n8n:latest
+# -------- Stage 2: Main n8n on Debian --------
+FROM node:18-slim as base
 
 # Install system dependencies
-USER root
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
@@ -28,13 +27,14 @@ RUN apt-get update && apt-get install -y \
     libsndfile1 \
  && rm -rf /var/lib/apt/lists/*
 
+# Install n8n
+WORKDIR /app
+COPY --from=whisper-builder /usr/local /usr/local
+RUN npm install n8n -g
+
 # Install yt-dlp
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp
-
-# Install Whisper from previous stage
-COPY --from=whisper-builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
-COPY --from=whisper-builder /usr/local/bin /usr/local/bin
 
 # Install Piper TTS
 RUN mkdir -p /opt/piper && \
@@ -44,5 +44,10 @@ RUN mkdir -p /opt/piper && \
 
 ENV PATH="/opt/piper:$PATH"
 
-# Fix permissions
+EXPOSE 5678
+
+# Use node user for safety
+RUN useradd -m node
 USER node
+
+CMD ["n8n"]
