@@ -1,29 +1,48 @@
-# Start from the official n8n image
-FROM n8nio/n8n
+# -------- Stage 1: Build Whisper + Python deps --------
+FROM python:3.10-slim as whisper-builder
 
-# Switch to the root user to install system-level packages
+RUN apt-get update && apt-get install -y \
+    curl wget git unzip ffmpeg jq \
+    python3 python3-pip python3-venv libsndfile1 libgl1 \
+ && pip install --upgrade pip && \
+    pip install git+https://github.com/openai/whisper.git
+
+# -------- Stage 2: Main n8n with custom tools --------
+FROM n8nio/n8n:latest
+
+# Install system dependencies
 USER root
-
-# Update package lists and install ffmpeg and other dependencies for Piper TTS
-# espeak-ng is a dependency for Piper
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     ffmpeg \
-    espeak-ng \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    wget \
+    jq \
+    git \
+    unzip \
+    python3 \
+    python3-pip \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
+    libsndfile1 \
+ && rm -rf /var/lib/apt/lists/*
 
-# Switch back to the node user
+# Install yt-dlp
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp
+
+# Install Whisper from previous stage
+COPY --from=whisper-builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
+COPY --from=whisper-builder /usr/local/bin /usr/local/bin
+
+# Install Piper TTS
+RUN mkdir -p /opt/piper && \
+    curl -L https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz \
+    | tar -xz -C /opt/piper && \
+    chmod +x /opt/piper/piper
+
+ENV PATH="/opt/piper:$PATH"
+
+# Fix permissions
 USER node
-
-# Create a directory for Python packages
-RUN mkdir -p /home/node/.local/bin
-ENV PATH="/home/node/.local/bin:${PATH}"
-
-# Upgrade pip and install the specified Python packages using a requirements.txt file
-# We will create this file next.
-COPY --chown=node:node requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-
-# This command will be run when the container starts.
-# It's the default command for the n8n container.
-CMD [ "n8n" ]
