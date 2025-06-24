@@ -35,7 +35,9 @@ RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o 
 RUN mkdir -p /opt/piper && \
     curl -L https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz \
     | tar -xz -C /opt/piper && \
-    chmod +x /opt/piper/piper
+    chmod 755 /opt/piper/piper && \
+    chown -R node:node /opt/piper
+
 
 # Install n8n globally
 RUN npm install -g n8n
