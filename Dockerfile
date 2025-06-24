@@ -27,13 +27,15 @@ RUN pip install --upgrade pip && \
         --index-url https://download.pytorch.org/whl/cpu && \
     pip install git+https://github.com/openai/whisper.git
 
-# Install Piper TTS
-# Install Piper TTS
+
+# --- Install Piper ---
 RUN mkdir -p /opt/piper && \
     curl -L https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz \
     | tar -xz -C /opt/piper && \
-    chmod +x /opt/piper/piper && \
-    chown -R node:node /opt/piper && chmod -R 755 /opt/piper
+    chmod 755 /opt /opt/piper && \
+    chmod 755 /opt/piper/piper && \
+    chown -R node:node /opt/piper
+
 
 
 # Download default Piper voice model
